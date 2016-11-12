@@ -14,6 +14,12 @@ const defaults = {
     realWidth: 48,
     order: ''
   },
+  expand: {
+    width: 48,
+    minWidth: 48,
+    realWidth: 48,
+    order: ''
+  },
   index: {
     width: 48,
     minWidth: 48,
@@ -44,6 +50,15 @@ const forced = {
     },
     renderCell: function(h, { $index }) {
       return <div>{ $index + 1 }</div>;
+    },
+    sortable: false
+  },
+  expand: {
+    renderHeader: function(h, {}) {
+      return '+';
+    },
+    renderCell: function(h, { row }, proxy) {
+      return <div on-click={ () => proxy.handleExpandClick(row) }>++</div>;
     },
     sortable: false
   }
@@ -203,8 +218,30 @@ export default {
 
     objectAssign(column, forced[type] || {});
 
+    this.columnConfig = column;
+
     let renderCell = column.renderCell;
     let _self = this;
+
+    if (type === 'expand') {
+      owner.renderExpanded = function(h, data) {
+        if (_self.$vnode.data.inlineTemplate) {
+          data._staticTrees = _self._staticTrees;
+          data.$options = {};
+          data.$options.staticRenderFns = _self.$options.staticRenderFns;
+          data._renderProxy = _self._renderProxy;
+          data._m = _self._m;
+
+          return _self.customRender.call(data);
+        }
+      };
+
+      column.renderCell = function(h, data) {
+        return <div class="cell">{ renderCell(h, data, this._renderProxy) }</div>;
+      };
+
+      return;
+    }
 
     column.renderCell = function(h, data) {
       if (_self.$vnode.data.inlineTemplate) {
@@ -229,8 +266,6 @@ export default {
           </el-tooltip>
         : <div class="cell">{ renderCell(h, data, this._renderProxy) }</div>;
     };
-
-    this.columnConfig = column;
   },
 
   destroyed() {

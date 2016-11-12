@@ -1,4 +1,4 @@
-import { getValueByPath, getCell, getColumnById, getColumnByCell } from './util';
+import { getValueByPath, getCell, getColumnByCell } from './util';
 
 export default {
   props: {
@@ -30,11 +30,11 @@ export default {
         <tbody>
           {
             this._l(this.data, (row, $index) =>
-              <tr
+              [<tr
                 on-click={ ($event) => this.handleClick($event, row) }
                 on-mouseenter={ _ => this.handleMouseEnter($index) }
                 on-mouseleave={ _ => this.handleMouseLeave() }
-                class={ this.getRowClass(row, $index) }>
+                class={ [this.getRowClass(row, $index)] }>
                 {
                   this._l(this.columns, (column, cellIndex) =>
                     <td
@@ -44,7 +44,7 @@ export default {
                       {
                         column.renderCell
                           ? column.renderCell.call(this._renderProxy, h, { row, column, $index, store: this.store, _self: this.$parent.$vnode.context })
-                          : <div class="cell">{ this.getCellContent(row, column.property, column.id) }</div>
+                          : <div class="cell">{ this.getCellContent(row, column.property, column) }</div>
                       }
                     </td>
                   )
@@ -52,7 +52,15 @@ export default {
                 {
                   !this.fixed && this.layout.scrollY && this.layout.gutterWidth ? <td class="gutter" /> : ''
                 }
-              </tr>
+              </tr>,
+              this.store.states.expandRows.indexOf(row) > -1
+                ? (<tr>
+                    <td colspan={ this.columns.length }>
+                      { this.$parent.renderExpanded ? this.$parent.renderExpanded.call(this._renderProxy, h, { row, $index, store: this.store, _self: this.$parent.$vnode.context }) : ''}
+                    </td>
+                  </tr>)
+                : ''
+              ]
             )
           }
         </tbody>
@@ -172,8 +180,11 @@ export default {
       table.$emit('row-click', row, event);
     },
 
-    getCellContent(row, property, columnId) {
-      const column = getColumnById(this.$parent, columnId);
+    handleExpandClick(row) {
+      this.store.commit('toggleRowExpanded', row);
+    },
+
+    getCellContent(row, property, column) {
       if (column && column.formatter) {
         return column.formatter(row, column);
       }

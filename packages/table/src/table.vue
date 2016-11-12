@@ -292,6 +292,7 @@
       return {
         store,
         layout,
+        renderExpanded: null,
         resizeProxyVisible: false
       };
     }

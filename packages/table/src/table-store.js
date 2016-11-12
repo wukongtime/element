@@ -76,7 +76,8 @@ const TableStore = function(table, initialState = {}) {
     selectable: null,
     currentRow: null,
     hoverRow: null,
-    filters: {}
+    filters: {},
+    expandRows: []
   };
 
   for (let prop in initialState) {
@@ -91,6 +92,15 @@ TableStore.prototype.mutations = {
     const dataInstanceChanged = states._data !== data;
     states._data = data;
     states.data = sortData((data || []), states);
+
+    states.data.forEach((item) => {
+      if (!item.$extra) {
+        Object.defineProperty(item, '$extra', {
+          value: {},
+          enumerable: false
+        });
+      }
+    });
 
     this.updateCurrentRow();
 
@@ -215,6 +225,26 @@ TableStore.prototype.mutations = {
     }
 
     this.updateAllSelected();
+  },
+
+  toggleRowExpanded: function(states, row, expanded) {
+    const expandRows = states.expandRows;
+    if (typeof expanded !== 'undefined') {
+      const index = expandRows.indexOf(row);
+      if (expanded) {
+        if (index === -1) expandRows.push(row);
+      } else {
+        if (index !== -1) expandRows.splice(index, 1);
+      }
+    } else {
+      const index = expandRows.indexOf(row);
+      if (index === -1) {
+        expandRows.push(row);
+      } else {
+        expandRows.splice(index, 1);
+      }
+    }
+    console.log(expandRows);
   },
 
   toggleAllSelection: debounce(10, function(states) {
@@ -363,6 +393,8 @@ TableStore.prototype.commit = function(name, ...args) {
   const mutations = this.mutations;
   if (mutations[name]) {
     mutations[name].apply(this, [this.states].concat(args));
+  } else {
+    throw new Error(`Action not found: ${name}`);
   }
 };
 
